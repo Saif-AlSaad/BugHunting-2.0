@@ -5,6 +5,7 @@ import type {
 import { RANKS, ACHIEVEMENT_TEMPLATES } from "./types";
 import { ALL_MISSIONS, INITIAL_ENV, getLevelModifiers, getLevelMission, MAX_LEVEL } from "./game/apps";
 import { cn } from "./utils/cn";
+import { sound } from "./utils/audio";
 import HomeScreen from "./components/HomeScreen";
 import MissionSelect from "./components/MissionSelect";
 import TestEnvironment from "./components/TestEnvironment";
@@ -17,7 +18,7 @@ const loadProfile = (): PlayerProfile => {
     const d = localStorage.getItem("bh_profile");
     if (d) {
       const p = JSON.parse(d);
-      return { hintsUsed: 0, highestUnlockedLevel: 1, ...p };
+      return { hintsUsed: 0, highestUnlockedLevel: 1, levelStars: {}, soundEnabled: true, ...p };
     }
   } catch { /* ignore */ }
   return {
@@ -25,6 +26,8 @@ const loadProfile = (): PlayerProfile => {
     bugsMedium: 0, bugsLow: 0, falsePositives: 0, totalReports: 0,
     testCases: 3, accuracy: 100, achievements: ACHIEVEMENT_TEMPLATES.map(a => ({ ...a })),
     hintsUsed: 0, highestUnlockedLevel: 1,
+    levelStars: {},
+    soundEnabled: true,
   };
 };
 
@@ -205,6 +208,7 @@ export default function App() {
     });
 
     if (valid) {
+      sound.playReportSuccess();
       setProfile(prev => {
         const newBugs = prev.bugsFound + 1;
         const newTotal = prev.totalReports + 1;
@@ -239,6 +243,7 @@ export default function App() {
       });
       notify(`✅ Report accepted! +${Math.max(0, score)} XP`);
     } else {
+      sound.playReportReject();
       setProfile(prev => ({
         ...prev,
         totalReports: prev.totalReports + 1,
@@ -264,6 +269,17 @@ export default function App() {
     const accuracy = missionReports.filter(r => r.valid).length > 0
       ? Math.round((missionReports.filter(r => r.valid).length / missionReports.length) * 100)
       : 0;
+
+    if (cleared) {
+      const starsEarned = accuracy === 100 && hintsUsedThisMission === 0 ? 3 : hintsUsedThisMission <= 1 ? 2 : 1;
+      setProfile(prev => ({
+        ...prev,
+        levelStars: {
+          ...(prev.levelStars || {}),
+          [level]: Math.max(prev.levelStars?.[level] || 0, starsEarned),
+        },
+      }));
+    }
     if (missionReports.length > 0 && accuracy === 100) {
       setProfile(prev => {
         const na = [...prev.achievements];
@@ -370,6 +386,7 @@ export default function App() {
       {screen === "missions" && (
         <MissionSelect
           highestUnlockedLevel={profile.highestUnlockedLevel}
+          levelStars={profile.levelStars || {}}
           onSelectLevel={startLevel}
           onBack={() => setScreen("home")}
         />

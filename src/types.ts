@@ -11,6 +11,24 @@ export type Severity = "critical" | "high" | "medium" | "low";
 export type Priority = "P1" | "P2" | "P3" | "P4";
 export type Status = "open" | "fixed" | "rejected";
 
+export interface NetworkEntry {
+  id: string;
+  method: "GET" | "POST" | "PUT" | "DELETE";
+  url: string;
+  status: number;
+  timeMs: number;
+  timestamp: string;
+  requestPayload?: any;
+  response: string;
+}
+
+export interface ConsoleEntry {
+  id: string;
+  type: "log" | "warn" | "error" | "info";
+  message: string;
+  timestamp: string;
+}
+
 export interface TestEnvState {
   username: string;
   password: string;
@@ -41,12 +59,15 @@ export interface TestEnvState {
   selectedSeat: string | null;
   bookedSeats: string[];
   cancelledSeat: string | null;
-  // General
+  // General & QA DevTools
   viewport: "desktop" | "tablet" | "mobile";
   consoleOpen: boolean;
+  activeDevTab: "console" | "network" | "storage";
   consoleInput: string;
   consoleOutput: string[];
+  consoleLogs: ConsoleEntry[];
   networkLog: { method: string; url: string; status: number; response: string }[];
+  networkLogs: NetworkEntry[];
 }
 
 export interface Bug {
@@ -98,6 +119,8 @@ export interface PlayerProfile {
   achievements: Achievement[];
   hintsUsed: number;
   highestUnlockedLevel: number;
+  levelStars: Record<number, number>;
+  soundEnabled: boolean;
 }
 
 export interface Mission {

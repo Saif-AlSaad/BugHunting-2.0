@@ -113,8 +113,13 @@ export const INITIAL_ENV: () => TestEnvState = () => ({
   depositAmount: 0, withdrawAmount: 0,
   transactions: [], txIdCounter: 1,
   selectedSeat: null, bookedSeats: [], cancelledSeat: null,
-  viewport: "desktop", consoleOpen: false, consoleInput: "",
-  consoleOutput: [], networkLog: [],
+  viewport: "desktop", consoleOpen: false, activeDevTab: "console", consoleInput: "",
+  consoleOutput: [], consoleLogs: [
+    { id: "c1", type: "info", message: "QA DevTools runtime initialized.", timestamp: new Date().toLocaleTimeString() }
+  ],
+  networkLog: [], networkLogs: [
+    { id: "n1", method: "GET", url: "/api/health", status: 200, timeMs: 32, timestamp: new Date().toLocaleTimeString(), response: JSON.stringify({ status: "ok", service: "ready" }) }
+  ],
 });
 
 export const LOGIN_BUGS: Bug[] = [
