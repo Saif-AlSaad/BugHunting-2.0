@@ -59,9 +59,11 @@ interface LevelBand {
 
 function getLevelBands(): LevelBand[] {
   return [
-    { from: 1, to: 34, missionIndex: 0 },   // Authentication System
-    { from: 35, to: 67, missionIndex: 1 },  // E-Commerce System
-    { from: 68, to: 100, missionIndex: 2 }, // Banking Application
+    { from: 1, to: 20, missionIndex: 0 },   // Authentication System (Ch 1)
+    { from: 21, to: 40, missionIndex: 1 },  // E-Commerce System (Ch 2)
+    { from: 41, to: 60, missionIndex: 2 },  // Banking Application (Ch 3)
+    { from: 61, to: 80, missionIndex: 3 },  // Clinical Healthcare EHR (Ch 4)
+    { from: 81, to: 100, missionIndex: 3 }, // Temporary Ch 4 until Ch 5 is mounted
   ];
 }
 
@@ -113,6 +115,12 @@ export const INITIAL_ENV: () => TestEnvState = () => ({
   depositAmount: 0, withdrawAmount: 0,
   transactions: [], txIdCounter: 1,
   selectedSeat: null, bookedSeats: [], cancelledSeat: null,
+  patientName: "Eleanor Vance (PID-4092)", patientAge: 8, patientWeightLbs: 55,
+  heartRateBpm: 82, bloodPressureSystolic: 110, bloodPressureDiastolic: 70, oxygenSaturation: 98,
+  prescribedDrug: "", calculatedDosageMg: 0, breakGlassActive: false, allergyWarningDismissed: false,
+  ehrAuditLogs: [
+    { id: "log-1", action: "PATIENT_ADMISSION", user: "Dr. Chen (MD)", timestamp: "08:15 AM", details: "Routine pediatric diagnostic intake." }
+  ],
   viewport: "desktop", consoleOpen: false, activeDevTab: "console", consoleInput: "",
   consoleOutput: [], consoleLogs: [
     { id: "c1", type: "info", message: "QA DevTools runtime initialized.", timestamp: new Date().toLocaleTimeString() }
@@ -276,6 +284,93 @@ export const BANKING_BUGS: Bug[] = [
   },
 ];
 
+export const HEALTHCARE_BUGS: Bug[] = [
+  {
+    id: "health-01",
+    title: "Pediatric dosage calculation applies inverted conversion factor",
+    description: "When converting patient weight from pounds to kilograms for pediatric amoxicillin dosage, the calculator multiplies instead of divides, resulting in a dangerous 10x overdose.",
+    severity: "critical",
+    priority: "P1",
+    category: "Calculation",
+    technique: "Boundary Value Analysis",
+    hints: [
+      "Check the pediatric dosage calculator tab with a child's weight in lbs.",
+      "Does 55 lbs equal ~25 kg or 121 kg in the formula? Verify the math.",
+    ],
+    xpReward: 220,
+  },
+  {
+    id: "health-02",
+    title: "Unmasked PHI and SSN leaked in diagnostic API response",
+    description: "The patient diagnostic vitals endpoint returns unencrypted Social Security Numbers and unredacted psychiatric evaluation notes in the network payload.",
+    severity: "high",
+    priority: "P1",
+    category: "Compliance",
+    technique: "API & Data Security",
+    hints: [
+      "Open F12 DevTools and look at the Network tab when loading patient records.",
+      "Check the JSON payload response for /api/v1/patient/vitals.",
+    ],
+    xpReward: 160,
+  },
+  {
+    id: "health-03",
+    title: "Impossible physiological vitals accepted by triage form",
+    description: "The clinical triage intake allows negative heart rate (-15 bpm) and impossible systolic blood pressure (450 mmHg) without validation error.",
+    severity: "medium",
+    priority: "P2",
+    category: "Validation",
+    technique: "Boundary Value Analysis",
+    hints: [
+      "Try entering negative or superhuman vital sign values in the vitals entry form.",
+      "Does the system validate realistic physiological ranges for pulse or BP?",
+    ],
+    xpReward: 110,
+  },
+  {
+    id: "health-04",
+    title: "Concurrent chart save silently drops allergy alert without lock",
+    description: "Saving vitals while a pending allergy update is active silently overwrites the patient's critical Penicillin anaphylaxis warning without a merge conflict warning.",
+    severity: "high",
+    priority: "P2",
+    category: "Concurrency",
+    technique: "State Testing",
+    hints: [
+      "Look at the Allergy Conflict indicator on the patient banner.",
+      "Try clicking 'Sync Remote Chart Changes' or saving vitals while allergy alert is pending.",
+    ],
+    xpReward: 150,
+  },
+  {
+    id: "health-05",
+    title: "Emergency Break-Glass access fails to write to HIPAA audit log",
+    description: "Activating emergency 'Break-Glass' protocol to access restricted patient records does not create a mandatory timestamped entry in the compliance audit trail.",
+    severity: "critical",
+    priority: "P1",
+    category: "Security",
+    technique: "Audit Trail Verification",
+    hints: [
+      "Trigger the red 'Break-Glass Emergency Override' button on the patient chart.",
+      "Check the 'HIPAA Audit Trail' tab to see if the override event was logged.",
+    ],
+    xpReward: 200,
+  },
+  {
+    id: "health-06",
+    title: "Severe drug contraindication alert suppressed for anticoagulants",
+    description: "Prescribing Warfarin alongside Heparin fails to trigger the mandatory hard-stop contraindication modal alert.",
+    severity: "high",
+    priority: "P2",
+    category: "Safety Logic",
+    technique: "Equivalence Partitioning",
+    hints: [
+      "Test the Medication Order section.",
+      "Try prescribing an interacting anticoagulant like Warfarin or Aspirin to a patient already on Heparin.",
+    ],
+    xpReward: 140,
+  },
+];
+
 export const ALL_MISSIONS: Mission[] = [
   {
     id: "login", title: "Authentication System", icon: "🔐",
@@ -314,6 +409,24 @@ export const ALL_MISSIONS: Mission[] = [
       "Transfer cannot exceed available balance",
       "Transaction history must reflect accurate balances",
       "Decimal amounts must be preserved to 2 decimal places",
+    ],
+  },
+  {
+    id: "healthcare",
+    title: "Clinical EHR & Diagnostic Portal",
+    icon: "🏥",
+    difficulty: 4,
+    description: "Test an enterprise Electronic Health Records (EHR) portal — clinical triage vitals, pediatric dosage calculators, medication prescription safety checks, and HIPAA compliance audit logging.",
+    clientName: "PulseCare Systems",
+    sprintName: "Sprint 41",
+    timeLimit: 840,
+    bugs: HEALTHCARE_BUGS,
+    requirements: [
+      "Pediatric dosage formulas must accurately calculate mg/kg without unit inversion",
+      "Protected Health Information (PHI) like SSN must be masked in all API responses",
+      "Vitals input must reject non-physiological values (e.g. pulse < 30 or > 250 bpm)",
+      "Emergency Break-Glass overrides must be permanently written to the HIPAA audit trail",
+      "Dangerous drug contraindications must trigger mandatory hard-stop warnings",
     ],
   },
 ];

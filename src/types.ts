@@ -59,6 +59,19 @@ export interface TestEnvState {
   selectedSeat: string | null;
   bookedSeats: string[];
   cancelledSeat: string | null;
+  // Healthcare / Clinical EHR
+  patientName: string;
+  patientAge: number;
+  patientWeightLbs: number;
+  heartRateBpm: number;
+  bloodPressureSystolic: number;
+  bloodPressureDiastolic: number;
+  oxygenSaturation: number;
+  prescribedDrug: string;
+  calculatedDosageMg: number;
+  breakGlassActive: boolean;
+  allergyWarningDismissed: boolean;
+  ehrAuditLogs: { id: string; action: string; user: string; timestamp: string; details: string }[];
   // General & QA DevTools
   viewport: "desktop" | "tablet" | "mobile";
   consoleOpen: boolean;
@@ -244,6 +257,9 @@ export const RANKS = [
   { name: "Senior QA Engineer", emoji: "💎", minXP: 1500 },
   { name: "QA Architect", emoji: "🔥", minXP: 3000 },
   { name: "Bug Hunter Legend", emoji: "👑", minXP: 5000 },
+  { name: "Principal QA Fellow", emoji: "🛡️", minXP: 8500 },
+  { name: "VP of Quality & Trust", emoji: "⚡", minXP: 13000 },
+  { name: "Supreme Master of Quality", emoji: "🌌", minXP: 19000 },
 ];
 
 export const ACHIEVEMENT_TEMPLATES: Achievement[] = [
@@ -253,9 +269,10 @@ export const ACHIEVEMENT_TEMPLATES: Achievement[] = [
   { id: "perfect_tester", title: "Perfect Tester", emoji: "🎯", description: "Complete a mission with 100% accuracy", unlocked: false },
   { id: "speed_demon", title: "Speed Demon", emoji: "⚡", description: "Find 3 bugs within 2 minutes", unlocked: false },
   { id: "edge_case_master", title: "Edge Case Master", emoji: "🧠", description: "Find a boundary-value bug", unlocked: false },
-  { id: "full_stack", title: "Full Stack", emoji: "🌐", description: "Test all 3 applications", unlocked: false },
+  { id: "full_stack", title: "Full Stack", emoji: "🌐", description: "Test all 5 enterprise applications", unlocked: false },
   { id: "xp_1000", title: "Rising Star", emoji: "⭐", description: "Reach 1,000 XP", unlocked: false },
   { id: "no_hints", title: "Independent Investigator", emoji: "🕵️", description: "Complete a mission without using a single hint", unlocked: false },
   { id: "level_50", title: "Halfway Hunter", emoji: "🎚️", description: "Complete a mission at level 50 or higher", unlocked: false },
   { id: "level_100", title: "Max Difficulty", emoji: "🏆", description: "Complete a mission at level 100", unlocked: false },
+  { id: "hipaa_auditor", title: "HIPAA Auditor", emoji: "🏥", description: "Find a healthcare compliance or clinical calculation defect", unlocked: false },
 ];

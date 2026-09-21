@@ -223,6 +223,7 @@ export default function App() {
         if (newBugs >= 10) unlock("bug_magnet");
         if (bug.severity === "critical") unlock("critical_hunter");
         if (bug.technique.includes("Boundary")) unlock("edge_case_master");
+        if (bug.id.startsWith("health-")) unlock("hipaa_auditor");
         const totalXP = prev.xp + Math.max(0, score);
         if (totalXP >= 1000) unlock("xp_1000");
         return {

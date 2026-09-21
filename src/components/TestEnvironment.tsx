@@ -9,6 +9,7 @@ import DevToolsPanel from "./browser/DevToolsPanel";
 import AuthApp from "./apps/AuthApp";
 import EcomApp from "./apps/EcomApp";
 import BankingApp from "./apps/BankingApp";
+import HealthApp from "./apps/HealthApp";
 import DiscoveredBugsPanel from "./DiscoveredBugsPanel";
 
 interface Props {
@@ -107,7 +108,9 @@ export default function TestEnvironment({
       ? "auth.secureauth.internal/login"
       : mission.id === "ecommerce"
       ? "store.shopwave.internal/shop"
-      : "portal.neobank.internal/dashboard";
+      : mission.id === "banking"
+      ? "portal.neobank.internal/dashboard"
+      : "ehr.pulsecare.internal/patients/chart";
 
   const errorCount = (env.consoleLogs || []).filter(l => l.type === "error").length;
 
@@ -259,6 +262,17 @@ export default function TestEnvironment({
 
         {mission.id === "banking" && (
           <BankingApp
+            env={env}
+            hasBug={hasBug}
+            checkBug={checkBug}
+            onStateChange={onStateChange}
+            addConsoleLog={addConsoleLog}
+            addNetworkLog={addNetworkLog}
+          />
+        )}
+
+        {mission.id === "healthcare" && (
+          <HealthApp
             env={env}
             hasBug={hasBug}
             checkBug={checkBug}
