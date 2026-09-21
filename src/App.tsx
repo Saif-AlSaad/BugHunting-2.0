@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type {
   Bug, BugReport, Mission, PlayerProfile, Screen, Severity, TestEnvState,
 } from "./types";
-import { RANKS, ACHIEVEMENT_TEMPLATES } from "./types";
+import { RANKS, ACHIEVEMENT_TEMPLATES, SECTION_STARTS } from "./types";
 import { ALL_MISSIONS, INITIAL_ENV, getLevelModifiers, getLevelMission, MAX_LEVEL } from "./game/apps";
 import { cn } from "./utils/cn";
 import { sound } from "./utils/audio";
@@ -18,7 +18,8 @@ const loadProfile = (): PlayerProfile => {
     const d = localStorage.getItem("bh_profile");
     if (d) {
       const p = JSON.parse(d);
-      return { hintsUsed: 0, highestUnlockedLevel: 1, levelStars: {}, soundEnabled: true, ...p };
+      const unlockedLevels = Array.from(new Set([...(p.unlockedLevels || []), ...SECTION_STARTS]));
+      return { hintsUsed: 0, highestUnlockedLevel: 1, levelStars: {}, soundEnabled: true, ...p, unlockedLevels };
     }
   } catch { /* ignore */ }
   return {
@@ -26,6 +27,7 @@ const loadProfile = (): PlayerProfile => {
     bugsMedium: 0, bugsLow: 0, falsePositives: 0, totalReports: 0,
     testCases: 3, accuracy: 100, achievements: ACHIEVEMENT_TEMPLATES.map(a => ({ ...a })),
     hintsUsed: 0, highestUnlockedLevel: 1,
+    unlockedLevels: [...SECTION_STARTS],
     levelStars: {},
     soundEnabled: true,
   };
@@ -306,25 +308,27 @@ export default function App() {
       });
     }
 
-    // Advance the ladder if this cleared the frontier level
-    if (cleared && level === profile.highestUnlockedLevel && level < MAX_LEVEL) {
-      leveledUp = true;
+    // Advance the ladder if this cleared the level
+    if (cleared) {
+      const nextLevel = level + 1;
+      const wasUnlocked = (profile.unlockedLevels || SECTION_STARTS).includes(nextLevel);
+      if (nextLevel <= MAX_LEVEL && !wasUnlocked) {
+        leveledUp = true;
+      }
       setProfile(prev => {
-        const nextLevel = Math.min(MAX_LEVEL, prev.highestUnlockedLevel + 1);
+        const prevUnlocked = prev.unlockedLevels || [...SECTION_STARTS];
+        const newUnlocked = nextLevel <= MAX_LEVEL && !prevUnlocked.includes(nextLevel)
+          ? [...prevUnlocked, nextLevel]
+          : prevUnlocked;
+        const highest = Math.max(prev.highestUnlockedLevel, nextLevel <= MAX_LEVEL ? nextLevel : level);
         const na = [...prev.achievements];
         const unlock = (id: string) => {
           const idx = na.findIndex(a => a.id === id);
           if (idx >= 0) na[idx] = { ...na[idx], unlocked: true };
         };
-        if (nextLevel >= 50) unlock("level_50");
-        return { ...prev, highestUnlockedLevel: nextLevel, achievements: na };
-      });
-    } else if (cleared && level === MAX_LEVEL) {
-      setProfile(prev => {
-        const na = [...prev.achievements];
-        const idx = na.findIndex(a => a.id === "level_100");
-        if (idx >= 0) na[idx] = { ...na[idx], unlocked: true };
-        return { ...prev, achievements: na };
+        if (highest >= 50) unlock("level_50");
+        if (highest >= 100) unlock("level_100");
+        return { ...prev, highestUnlockedLevel: highest, unlockedLevels: newUnlocked, achievements: na };
       });
     }
 
@@ -387,6 +391,7 @@ export default function App() {
       {screen === "missions" && (
         <MissionSelect
           highestUnlockedLevel={profile.highestUnlockedLevel}
+          unlockedLevels={profile.unlockedLevels || SECTION_STARTS}
           levelStars={profile.levelStars || {}}
           onSelectLevel={startLevel}
           onBack={() => setScreen("home")}

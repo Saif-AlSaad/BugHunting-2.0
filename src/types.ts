@@ -132,8 +132,20 @@ export interface PlayerProfile {
   achievements: Achievement[];
   hintsUsed: number;
   highestUnlockedLevel: number;
+  unlockedLevels?: number[];
   levelStars: Record<number, number>;
   soundEnabled: boolean;
+}
+
+export const SECTION_STARTS = [1, 21, 41, 61, 81];
+
+export function isLevelUnlocked(level: number, profile?: Partial<PlayerProfile>): boolean {
+  if (SECTION_STARTS.includes(level)) return true;
+  if (!profile) return false;
+  if (profile.highestUnlockedLevel && level <= profile.highestUnlockedLevel) return true;
+  if (profile.unlockedLevels?.includes(level)) return true;
+  if (profile.levelStars && (profile.levelStars[level - 1] ?? 0) > 0) return true;
+  return false;
 }
 
 export interface Mission {

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { getLevelBandInfo, MAX_LEVEL } from "../game/apps";
+import { isLevelUnlocked, SECTION_STARTS } from "../types";
 import { cn } from "../utils/cn";
 import { sound } from "../utils/audio";
 
 interface Props {
   highestUnlockedLevel: number;
+  unlockedLevels?: number[];
   levelStars?: Record<number, number>;
   onSelectLevel: (level: number) => void;
   onBack: () => void;
@@ -60,11 +62,20 @@ const CHAPTERS = [
 
 export default function MissionSelect({
   highestUnlockedLevel,
+  unlockedLevels = SECTION_STARTS,
   levelStars = {},
   onSelectLevel,
   onBack,
 }: Props) {
-  // Auto-select chapter containing current level
+  const checkUnlocked = (lvl: number) => {
+    return isLevelUnlocked(lvl, {
+      highestUnlockedLevel,
+      unlockedLevels,
+      levelStars,
+    });
+  };
+
+  // Auto-select chapter containing highest unlocked level or first chapter
   const initialChapter = CHAPTERS.find(
     c => highestUnlockedLevel >= c.from && highestUnlockedLevel <= c.to
   )?.id ?? 0;
@@ -77,7 +88,8 @@ export default function MissionSelect({
     (_, i) => currentChapter.from + i
   );
 
-  const chapterClearedCount = chapterLevels.filter(lvl => lvl < highestUnlockedLevel).length;
+  const chapterClearedCount = chapterLevels.filter(lvl => (levelStars[lvl] || 0) > 0).length;
+  const chapterFrontier = chapterLevels.find(l => checkUnlocked(l) && !(levelStars[l] > 0)) ?? chapterLevels[0];
 
   return (
     <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-8">
@@ -88,7 +100,7 @@ export default function MissionSelect({
             QA Career Ladder
           </h2>
           <p className="text-xs text-slate-400 mt-1 font-sans">
-            100 progressively challenging sprints across 5 mission chapters. Find defects, submit verified reports, and earn 3 stars.
+            100 progressively challenging sprints across 5 mission chapters. The 1st sprint of each section is open — pick any domain and start hunting!
           </p>
         </div>
 
@@ -106,12 +118,12 @@ export default function MissionSelect({
       {/* Chapter Selection Cards */}
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         {CHAPTERS.map(ch => {
-          const isUnlocked = highestUnlockedLevel >= ch.from;
+          const isUnlocked = checkUnlocked(ch.from);
           const isSelected = selectedChapter === ch.id;
           const chCleared = Array.from(
             { length: ch.to - ch.from + 1 },
             (_, i) => ch.from + i
-          ).filter(l => l < highestUnlockedLevel).length;
+          ).filter(l => (levelStars[l] || 0) > 0).length;
 
           return (
             <button
@@ -145,9 +157,9 @@ export default function MissionSelect({
               <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">{ch.subtitle}</p>
 
               <div className="mt-3 flex items-center justify-between text-[11px] font-mono border-t border-slate-800/80 pt-2 text-slate-400">
-                <span>{isUnlocked ? "Progress:" : "Status:"}</span>
-                <span className={cn("font-bold", isUnlocked ? "text-sky-300" : "text-slate-600")}>
-                  {isUnlocked ? `${chCleared}/${ch.to - ch.from + 1} Sprints` : `Unlocks Lv.${ch.from}`}
+                <span>Progress:</span>
+                <span className="font-bold text-sky-300">
+                  {chCleared}/{ch.to - ch.from + 1} Sprints
                 </span>
               </div>
             </button>
@@ -163,25 +175,26 @@ export default function MissionSelect({
             <div>
               <h3 className="font-bold text-base text-white">{currentChapter.title}</h3>
               <p className="text-xs text-slate-400">
-                Completed {chapterClearedCount} of {chapterLevels.length} sprints
+                Completed {chapterClearedCount} of {chapterLevels.length} sprints in this domain
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="rounded-lg bg-slate-950 border border-slate-800 px-3 py-1.5 text-xs font-mono text-emerald-400 font-semibold">
-              Current Rank Frontier: Lv.{highestUnlockedLevel}
+              Chapter Active Frontier: Lv.{chapterFrontier}
             </span>
           </div>
         </div>
 
         {/* Level Grid */}
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-9 lg:grid-cols-11 gap-2.5">
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-9 lg:grid-cols-10 gap-2.5">
           {chapterLevels.map(lvl => {
-            const locked = lvl > highestUnlockedLevel;
-            const cleared = lvl < highestUnlockedLevel;
-            const current = lvl === highestUnlockedLevel;
-            const stars = levelStars[lvl] || (cleared ? 3 : 0);
+            const unlocked = checkUnlocked(lvl);
+            const locked = !unlocked;
+            const stars = levelStars[lvl] || 0;
+            const cleared = stars > 0;
+            const current = lvl === chapterFrontier;
 
             return (
               <button
